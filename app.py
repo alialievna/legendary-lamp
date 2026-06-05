@@ -20,7 +20,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .stApp { background: #F4F1EB !important; }
-.block-container { padding: 0 2rem 3rem !important; max-width: 100% !important; }
+.block-container { padding: 1rem 2rem 3rem !important; max-width: 100% !important; }
 
 /* ── Sidebar ── */
 section[data-testid="stSidebar"],
@@ -50,10 +50,11 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
     border-radius: 8px !important; background: #F9F8F5 !important; color: #374151 !important;
 }
 
-/* ── TOPBAR: use :has() to make BOTH columns in the topbar row white ── */
+/* ── TOPBAR: use :has() to paint BOTH columns white with border ── */
 [data-testid="stHorizontalBlock"]:has(.topbar-lc) {
     background: white !important;
     border-bottom: 1px solid #E8E4DC !important;
+    margin-top: -1rem !important;       /* negate block-container top padding → flush to top */
     margin-left: -2rem !important;
     margin-right: -2rem !important;
     padding-left: 2rem !important;
@@ -70,13 +71,18 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 .topbar-crumb { font-size: 0.7rem; color: #9CA3AF; margin-bottom: 2px; }
 .topbar-title { font-size: 1.15rem; font-weight: 700; color: #111827; }
 
-/* ── Topbar "New report" button ── */
-.topbar-btn > button {
+/* ── Topbar button: target via :has() so it works regardless of wrapper div ── */
+[data-testid="stHorizontalBlock"]:has(.topbar-lc) .stButton > button {
     background: #111827 !important; color: white !important; border: none !important;
     border-radius: 7px !important; font-weight: 600 !important; font-size: 0.82rem !important;
     padding: 6px 14px !important;
 }
-.topbar-btn > button:hover { background: #1F2937 !important; }
+[data-testid="stHorizontalBlock"]:has(.topbar-lc) .stButton > button:hover {
+    background: #1F2937 !important;
+}
+[data-testid="stHorizontalBlock"]:has(.topbar-lc) .stButton > button p {
+    color: white !important;
+}
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
@@ -280,6 +286,43 @@ def _top3_html(items, val_key, fmt):
     return html
 
 
+def _file_upload_card(col, icon, title, required, hint, key, ftype, parse_fn=None):
+    """Card with header → file uploader → status. Returns (file_obj, is_valid)."""
+    badge = (
+        '<span style="background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:4px;'
+        'font-size:0.65rem;font-weight:700;display:inline-block;margin-bottom:8px">Обязательный</span>'
+        if required else
+        '<span style="background:#D1FAE5;color:#065F46;padding:1px 7px;border-radius:4px;'
+        'font-size:0.65rem;font-weight:700;display:inline-block;margin-bottom:8px">Необязательный</span>'
+    )
+    with col:
+        with st.container(border=True):
+            st.markdown(
+                f'<div style="padding:2px 0 4px">'
+                f'<div style="font-size:1.5rem;margin-bottom:7px;line-height:1">{icon}</div>'
+                f'<div style="font-weight:700;font-size:0.88rem;color:#111827;margin-bottom:4px">{title}</div>'
+                f'{badge}'
+                f'<div style="font-size:0.74rem;color:#9CA3AF;line-height:1.45;margin-bottom:6px">{hint}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            f = st.file_uploader("", type=[ftype], key=key, label_visibility="collapsed")
+            if f:
+                if parse_fn:
+                    try:
+                        parse_fn(f); f.seek(0)
+                        st.markdown('<p style="color:#16A34A;font-size:0.76rem;font-weight:600;margin:4px 0 0">✓ Файл проверен</p>', unsafe_allow_html=True)
+                        return f, True
+                    except Exception:
+                        f.seek(0)
+                        st.markdown('<p style="color:#DC2626;font-size:0.76rem;font-weight:600;margin:4px 0 0">✗ Ошибка формата</p>', unsafe_allow_html=True)
+                        return f, False
+                else:
+                    st.markdown('<p style="color:#16A34A;font-size:0.76rem;font-weight:600;margin:4px 0 0">✓ Файл загружен</p>', unsafe_allow_html=True)
+                    return f, True
+    return None, False
+
+
 def _topbar(breadcrumb: str, title: str, btn_label: str = None, btn_key: str = None):
     """Renders a white topbar using :has(.topbar-lc) CSS. Returns True if button clicked."""
     tb_l, tb_r = st.columns([7, 1])
@@ -372,57 +415,20 @@ if in_upload:
     else:
         _topbar("DATA", "Import data")
 
-    # ── Drop zone card (dashed border via :has(.import-marker)) ────────────────
-    with st.container(border=True):
-        st.markdown('<span class="import-marker"></span>', unsafe_allow_html=True)
+    # ── File upload cards (2 × 2 grid) ────────────────────────────────────────
+    st.markdown(
+        '<p style="font-weight:700;font-size:0.9rem;color:#111827;margin-bottom:4px">Загрузите файлы с данными</p>'
+        '<p style="font-size:0.8rem;color:#6B7280;margin-bottom:16px">Первые три файла обязательны. Четвёртый добавит описание кампании в сводку.</p>',
+        unsafe_allow_html=True,
+    )
 
-        # Centered icon + text
-        st.markdown("""
-        <div style="text-align:center;padding:28px 0 16px">
-            <div style="display:inline-flex;align-items:center;justify-content:center;
-                        border:1.5px solid #374151;border-radius:10px;width:46px;height:46px;
-                        font-size:20px;margin-bottom:14px">↑</div>
-            <div style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:4px">
-                Drag files here to upload
-            </div>
-            <div style="font-size:0.82rem;color:#9CA3AF;margin-bottom:20px">
-                CSV · до 50 МБ · 3 обязательных файла (sales, returns, stock)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    r1c1, r1c2 = st.columns(2, gap="large")
+    r2c1, r2c2 = st.columns(2, gap="large")
 
-        # 4 file uploaders in a row
-        uc1, uc2, uc3, uc4 = st.columns(4, gap="medium")
-
-        sales_ok = returns_ok = stock_ok = False
-
-        with uc1:
-            st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#374151;margin-bottom:2px">📈 sales.csv <span style="color:#EF4444">*</span></p>', unsafe_allow_html=True)
-            sales_file = st.file_uploader("", type=["csv"], key="sf", label_visibility="collapsed")
-            if sales_file:
-                try:    parse_sales(sales_file); sales_ok = True
-                except: pass
-                finally: sales_file.seek(0)
-
-        with uc2:
-            st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#374151;margin-bottom:2px">↩ returns.csv <span style="color:#EF4444">*</span></p>', unsafe_allow_html=True)
-            returns_file = st.file_uploader("", type=["csv"], key="rf", label_visibility="collapsed")
-            if returns_file:
-                try:    parse_returns(returns_file); returns_ok = True
-                except: pass
-                finally: returns_file.seek(0)
-
-        with uc3:
-            st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#374151;margin-bottom:2px">📦 stock.csv <span style="color:#EF4444">*</span></p>', unsafe_allow_html=True)
-            stock_file = st.file_uploader("", type=["csv"], key="stf", label_visibility="collapsed")
-            if stock_file:
-                try:    parse_stock(stock_file); stock_ok = True
-                except: pass
-                finally: stock_file.seek(0)
-
-        with uc4:
-            st.markdown('<p style="font-size:0.78rem;font-weight:600;color:#374151;margin-bottom:2px">📣 campaign_info.txt</p>', unsafe_allow_html=True)
-            campaign_file = st.file_uploader("", type=["txt"], key="cf", label_visibility="collapsed")
+    sales_file,   sales_ok   = _file_upload_card(r1c1, "📈", "sales.csv",        True,  "дата · SKU · выручка · сессии",        "sf",  "csv", parse_sales)
+    returns_file, returns_ok = _file_upload_card(r1c2, "↩",  "returns.csv",       True,  "дата · SKU · возвраты · причина",      "rf",  "csv", parse_returns)
+    stock_file,   stock_ok   = _file_upload_card(r2c1, "📦", "stock.csv",         True,  "SKU · остаток · склад",                "stf", "csv", parse_stock)
+    campaign_file, _         = _file_upload_card(r2c2, "📣", "campaign_info.txt", False, "Описание маркетинговой акции (текст)", "cf",  "txt", None)
 
     # ── Recent uploads table ───────────────────────────────────────────────────
     with st.container(border=True):
