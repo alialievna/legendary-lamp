@@ -9,546 +9,522 @@ from utils.summary import generate_summary
 from utils.export import export_csv, export_pdf
 
 st.set_page_config(
-    page_title="Analytics Workflow",
-    page_icon="📊",
+    page_title="Flowmetric Analytics",
+    page_icon="■",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
-.stApp { background: #F8FAFC !important; }
+.stApp { background: #F4F1EB !important; }
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
-/* Hide sidebar and its toggle */
-[data-testid="stSidebar"] { display: none !important; }
-[data-testid="collapsedControl"] { display: none !important; }
+/* ── Sidebar ── */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div {
+    background: #FFFFFF !important;
+    border-right: 1px solid #E8E4DC !important;
+    box-shadow: none !important;
+}
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] div { color: #374151; }
 
-/* Tabs */
+/* Sidebar nav buttons */
+section[data-testid="stSidebar"] .stButton > button {
+    background: transparent !important; border: none !important;
+    text-align: left !important; justify-content: flex-start !important;
+    color: #4B5563 !important; padding: 7px 14px !important;
+    border-radius: 6px !important; width: 100% !important;
+    font-size: 0.83rem !important; font-weight: 500 !important;
+    box-shadow: none !important; transition: background 0.1s !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover { background: #F4F1EB !important; color: #111827 !important; }
+section[data-testid="stSidebar"] .stButton > button:disabled { color: #D1D5DB !important; cursor: default !important; }
+
+/* Sidebar search */
+section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
+    font-size: 0.8rem !important; border: 1px solid #E8E4DC !important;
+    border-radius: 8px !important; background: #F9F8F5 !important;
+    color: #374151 !important;
+}
+
+/* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
-    background: white !important; border-radius: 10px !important; padding: 4px !important;
-    gap: 2px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.07) !important; margin-bottom: 16px !important;
+    background: transparent !important; border-bottom: 1px solid #E8E4DC !important;
+    padding: 0 !important; gap: 0 !important; margin-bottom: 20px !important; box-shadow: none !important;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 7px !important; color: #64748B !important; font-weight: 500 !important;
-    font-size: 0.85rem !important; padding: 7px 16px !important; background: transparent !important; border: none !important;
+    background: transparent !important; border: none !important;
+    border-bottom: 2px solid transparent !important; color: #6B7280 !important;
+    font-size: 0.84rem !important; font-weight: 500 !important;
+    padding: 10px 18px !important; border-radius: 0 !important; margin-bottom: -1px !important;
 }
-.stTabs [data-baseweb="tab"][aria-selected="true"] { background: #3B82F6 !important; color: white !important; }
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    color: #111827 !important; border-bottom-color: #111827 !important; font-weight: 700 !important;
+}
 .stTabs [data-baseweb="tab-border"], .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
 
-/* Cards (bordered containers) */
+/* ── Bordered containers → white cards ── */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background: white !important; border: 1px solid #E2E8F0 !important;
-    border-radius: 14px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    background: white !important; border: 1px solid #E8E4DC !important;
+    border-radius: 12px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
 }
 
-/* Download buttons */
+/* ── Download buttons ── */
 .stDownloadButton > button {
-    background: #0F172A !important; color: white !important; border: none !important;
-    border-radius: 8px !important; font-weight: 600 !important; font-size: 0.88rem !important;
-}
-.stDownloadButton > button:hover { background: #1E293B !important; color: white !important; }
-
-/* Primary run button */
-.run-btn > button {
-    background: #3B82F6 !important; color: white !important; border: none !important;
-    border-radius: 10px !important; font-weight: 700 !important; font-size: 1rem !important;
-    padding: 14px 32px !important; transition: background 0.15s !important;
-}
-.run-btn > button:hover:not(:disabled) { background: #2563EB !important; }
-.run-btn > button:disabled {
-    background: #E2E8F0 !important; color: #94A3B8 !important; cursor: not-allowed !important;
+    background: #111827 !important; color: white !important; border: none !important;
+    border-radius: 8px !important; font-weight: 600 !important; font-size: 0.84rem !important;
 }
 
-/* New analysis button */
-.new-btn > button {
-    background: white !important; color: #374151 !important;
-    border: 1.5px solid #E2E8F0 !important; border-radius: 8px !important;
-    font-weight: 600 !important; font-size: 0.85rem !important;
-}
-.new-btn > button:hover { border-color: #94A3B8 !important; }
+/* ── Success / info messages ── */
+[data-testid="stAlert"] { border-radius: 10px !important; }
 
-/* Upload card */
-.upload-card {
-    background: white; border: 2px dashed #CBD5E1; border-radius: 14px;
-    padding: 20px 16px; text-align: center; transition: border-color .2s;
-}
-.upload-card.ok { border-color: #86EFAC; border-style: solid; background: #F0FDF4; }
-.upload-card.err { border-color: #FCA5A5; border-style: solid; background: #FEF2F2; }
-.upload-icon { font-size: 28px; margin-bottom: 8px; }
-.upload-title { font-weight: 700; color: #0F172A; font-size: 0.9rem; margin-bottom: 3px; }
-.upload-desc { color: #94A3B8; font-size: 0.75rem; margin-bottom: 12px; }
-.upload-badge-ok { background: #DCFCE7; color: #16A34A; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; display: inline-block; }
-.upload-badge-err { background: #FEE2E2; color: #DC2626; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; display: inline-block; }
-.upload-badge-wait { background: #F1F5F9; color: #94A3B8; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; display: inline-block; }
-
-/* KPI grid */
-.kpi-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; margin-bottom: 20px; }
-@media(max-width:1100px){ .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+/* ── KPI card ── */
 .kpi-card {
-    background: white; border-radius: 14px; padding: 18px 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #E2E8F0;
-    transition: box-shadow .15s, transform .15s;
+    background: white; border-radius: 12px; padding: 18px 20px;
+    border: 1px solid #E8E4DC; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
-.kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
-.kpi-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; margin-bottom:12px; }
-.kpi-value { font-size:1.45rem; font-weight:700; color:#0F172A; line-height:1.1; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.kpi-label { font-size:0.68rem; color:#94A3B8; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; }
+.kpi-label { font-size: 0.67rem; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 10px; }
+.kpi-value { font-size: 1.55rem; font-weight: 700; color: #111827; margin-bottom: 10px; line-height: 1.1; }
+.kpi-bar { height: 3px; background: #F0EDE8; border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.kpi-bar-fill { height: 100%; border-radius: 2px; }
+.kpi-sub { font-size: 0.72rem; color: #9CA3AF; }
 
-/* Summary card */
-.summary-card {
-    background: white; border-radius: 14px; padding: 18px 22px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #3B82F6;
-    margin-bottom: 20px; color: #1E293B; font-size: 0.9rem; line-height: 1.75;
+/* ── Alert table ── */
+.alert-row {
+    display: flex; align-items: center; padding: 11px 16px;
+    border-bottom: 1px solid #F3F0EB; gap: 12px;
 }
-.summary-label { font-size:0.67rem; font-weight:700; color:#3B82F6; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }
+.alert-row:last-child { border-bottom: none; }
+.a-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.a-dot-c { background: #EF4444; }
+.a-dot-w { background: #F59E0B; }
+.a-name { flex: 1; font-size: 0.84rem; font-weight: 600; color: #111827; min-width: 0; }
+.a-cond { flex: 2; font-size: 0.79rem; color: #6B7280; padding: 0 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+.a-firing { background: #FEE2E2; color: #DC2626; }
+.a-warning { background: #FEF3C7; color: #D97706; }
 
-/* Alert items */
-.alert-item {
-    display:flex; align-items:flex-start; gap:12px; background:white; border-radius:10px;
-    padding:12px 16px; box-shadow:0 1px 2px rgba(0,0,0,0.04); border:1px solid #F1F5F9; margin-bottom:8px;
-}
-.badge { padding:3px 10px; border-radius:20px; font-size:0.68rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px; }
-.badge-crit { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; }
-.badge-warn { background:#FFFBEB; color:#D97706; border:1px solid #FDE68A; }
-.alert-sku { font-weight:700; color:#0F172A; font-size:0.84rem; }
-.alert-msg { color:#64748B; font-size:0.81rem; margin-top:1px; }
-
-/* Top-3 list */
-.top3-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #F8FAFC; }
+/* ── Top-3 list ── */
+.top3-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #F4F1EB; }
 .top3-row:last-child { border-bottom:none; }
-.top3-rank { width:26px; height:26px; border-radius:50%; background:#EFF6FF; color:#3B82F6; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.76rem; flex-shrink:0; }
-.top3-name { flex:1; padding:0 12px; color:#374151; font-size:0.83rem; line-height:1.3; }
-.top3-sku-sub { color:#94A3B8; font-size:0.73rem; }
-.top3-val { font-weight:700; color:#0F172A; font-size:0.83rem; }
+.top3-rank { width:24px; height:24px; border-radius:50%; background:#F4F1EB; color:#374151; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.72rem; flex-shrink:0; }
+.top3-name { flex:1; padding:0 12px; color:#374151; font-size:0.82rem; line-height:1.3; }
+.top3-sku-sub { color:#9CA3AF; font-size:0.71rem; }
+.top3-val { font-weight:700; color:#111827; font-size:0.82rem; }
 
-/* Section heading */
-.sec-head { font-size:0.88rem; font-weight:700; color:#0F172A; margin-bottom:14px; }
+/* ── Section heading ── */
+.sec-head { font-size:0.82rem; font-weight:700; color:#111827; margin-bottom:12px; }
 
-/* Misc */
-hr { border:none !important; border-top:1px solid #E2E8F0 !important; margin:16px 0 !important; }
-::-webkit-scrollbar { width:5px; height:5px; }
-::-webkit-scrollbar-track { background:#F1F5F9; }
-::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:3px; }
-[data-testid="stPlotlyChart"] { border-radius:10px !important; }
-[data-testid="stDataFrame"] { border-radius:10px !important; overflow:hidden !important; }
+/* ── Upload file card ── */
+.ufc {
+    background: white; border-radius: 12px; padding: 18px;
+    border: 1px solid #E8E4DC;
+}
+.ufc-ok { border-color: #86EFAC; background: #F0FDF4; }
+.ufc-err { border-color: #FCA5A5; background: #FEF2F2; }
+.ufc-icon { font-size: 1.5rem; margin-bottom: 8px; }
+.ufc-title { font-size: 0.88rem; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.ufc-badge-req { background: #FEF3C7; color: #92400E; padding: 1px 7px; border-radius: 4px; font-size: 0.66rem; font-weight: 700; display:inline-block; margin-bottom:6px; }
+.ufc-badge-opt { background: #D1FAE5; color: #065F46; padding: 1px 7px; border-radius: 4px; font-size: 0.66rem; font-weight: 700; display:inline-block; margin-bottom:6px; }
+.ufc-hint { font-size: 0.74rem; color: #9CA3AF; line-height: 1.5; margin-bottom: 10px; }
+.ufc-ok-text { font-size: 0.76rem; font-weight: 600; color: #16A34A; margin-top: 6px; }
+.ufc-err-text { font-size: 0.76rem; font-weight: 600; color: #DC2626; margin-top: 6px; }
+
+/* ── Summary card ── */
+.summary-card {
+    background: white; border-radius: 12px; padding: 18px 22px;
+    border: 1px solid #E8E4DC; border-left: 3px solid #111827;
+    color: #1E293B; font-size: 0.88rem; line-height: 1.75; margin-bottom: 20px;
+}
+.summary-label { font-size: 0.65rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+/* ── Nav active ── */
+.nav-active {
+    background: #F4F1EB; color: #111827 !important; padding: 7px 14px;
+    border-radius: 6px; font-size: 0.83rem; font-weight: 700;
+    display: block; margin-bottom: 2px;
+}
+
+/* ── New report button ── */
+.btn-primary > button {
+    background: #111827 !important; color: white !important; border: none !important;
+    border-radius: 8px !important; font-weight: 600 !important; font-size: 0.84rem !important;
+    padding: 8px 16px !important;
+}
+.btn-primary > button:hover { background: #1F2937 !important; }
+
+/* ── Export button ── */
+.btn-outline > button {
+    background: white !important; color: #374151 !important;
+    border: 1px solid #D1CCC4 !important; border-radius: 8px !important;
+    font-weight: 600 !important; font-size: 0.84rem !important;
+}
+
+/* ── Misc ── */
+hr { border: none !important; border-top: 1px solid #E8E4DC !important; margin: 12px 0 !important; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #F4F1EB; }
+::-webkit-scrollbar-thumb { background: #D1CCC4; border-radius: 2px; }
+[data-testid="stPlotlyChart"] { border-radius: 10px !important; }
+[data-testid="stDataFrame"] { border-radius: 10px !important; overflow: hidden !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
-PALETTE = ["#3B82F6","#8B5CF6","#22C55E","#F59E0B","#EF4444","#06B6D4","#EC4899","#14B8A6"]
+PALETTE = ["#374151","#6B7280","#9CA3AF","#3B82F6","#22C55E","#F59E0B","#EF4444","#8B5CF6"]
 
 
 def _fmt_rev(v: float) -> str:
-    if v >= 1_000_000:
-        return f"{v/1_000_000:.1f}M ₽"
-    if v >= 1_000:
-        return f"{v/1_000:.0f}K ₽"
+    if v >= 1_000_000: return f"{v/1_000_000:.1f}M ₽"
+    if v >= 1_000:     return f"{v/1_000:.0f}K ₽"
     return f"{v:,.0f} ₽"
 
 
-def _chart(fig):
+def _chart(fig, title=""):
+    if title:
+        fig.update_layout(title=dict(text=title, font=dict(size=12, color="#111827", family="Inter"), pad=dict(b=10)))
     fig.update_layout(
         plot_bgcolor="white", paper_bgcolor="white",
         font=dict(family="Inter, sans-serif", color="#374151", size=11),
-        xaxis=dict(gridcolor="#F1F5F9", zeroline=False, showline=False, tickfont=dict(size=10, color="#94A3B8")),
-        yaxis=dict(gridcolor="#F1F5F9", zeroline=False, showline=False, tickfont=dict(size=10, color="#94A3B8")),
-        margin=dict(l=10, r=10, t=40, b=10),
-        title_font=dict(size=13, color="#0F172A", family="Inter"),
-        hoverlabel=dict(bgcolor="white", bordercolor="#E2E8F0", font=dict(size=11, color="#0F172A")),
-        legend=dict(bgcolor="rgba(255,255,255,0.95)", bordercolor="#E2E8F0", borderwidth=1, font=dict(size=10)),
+        xaxis=dict(gridcolor="#F4F1EB", zeroline=False, showline=False, tickfont=dict(size=10, color="#9CA3AF")),
+        yaxis=dict(gridcolor="#F4F1EB", zeroline=False, showline=False, tickfont=dict(size=10, color="#9CA3AF")),
+        margin=dict(l=8, r=8, t=36, b=8),
+        hoverlabel=dict(bgcolor="white", bordercolor="#E8E4DC", font=dict(size=11, color="#111827")),
+        legend=dict(bgcolor="rgba(255,255,255,0.95)", bordercolor="#E8E4DC", borderwidth=1, font=dict(size=10)),
+        coloraxis_showscale=False,
     )
     return fig
 
 
-def _kpi_html(metrics: dict, n_days: int) -> str:
+def _kpi_cards(metrics, n_days):
     rr = metrics["return_rate"]
-    rc, rbg = (("#EF4444","#FEF2F2") if rr > 20 else ("#F59E0B","#FFFBEB") if rr > 15 else ("#22C55E","#F0FDF4"))
-    cards = [
-        ("💰","#3B82F6","#EFF6FF","Выручка",        _fmt_rev(metrics["total_revenue"])),
-        ("📦","#22C55E","#F0FDF4","Продано",         f"{metrics['total_sold']:,} шт."),
-        ("↩",  rc,       rbg,    "% возвратов",     f"{rr:.1f}%"),
-        ("🎯","#8B5CF6","#F5F3FF","Конверсия",       f"{metrics['avg_conversion']:.2f}%"),
-        ("🏷","#06B6D4","#ECFEFF","Позиций SKU",     str(metrics["sku_count"])),
-        ("📅","#EC4899","#FDF2F8","Дней данных",     str(n_days)),
-    ]
-    html = '<div class="kpi-grid">'
-    for icon, color, bg, label, value in cards:
-        html += (f'<div class="kpi-card">'
-                 f'<div class="kpi-icon" style="background:{bg};color:{color}">{icon}</div>'
-                 f'<div class="kpi-value">{value}</div>'
-                 f'<div class="kpi-label">{label}</div>'
-                 f'</div>')
-    return html + '</div>'
+    rc = "#EF4444" if rr > 20 else "#F59E0B" if rr > 15 else "#22C55E"
+    rp = min(rr / 30 * 100, 100)
+    rev_pct = min(metrics["total_revenue"] / 30_000_000 * 100, 100)
+    sold_pct = min(metrics["total_sold"] / 15_000 * 100, 100)
+    conv_pct = min(metrics["avg_conversion"] / 5 * 100, 100)
+
+    cards_html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">'
+    for label, value, pct, color in [
+        ("Выручка",     _fmt_rev(metrics["total_revenue"]), rev_pct,  "#111827"),
+        ("Продано",     f"{metrics['total_sold']:,} шт.",   sold_pct, "#374151"),
+        ("% возвратов", f"{rr:.1f}%",                       rp,       rc),
+        ("Конверсия",   f"{metrics['avg_conversion']:.2f}%",conv_pct, "#374151"),
+    ]:
+        cards_html += (
+            f'<div class="kpi-card">'
+            f'<div class="kpi-label">{label}</div>'
+            f'<div class="kpi-value">{value}</div>'
+            f'<div class="kpi-bar"><div class="kpi-bar-fill" style="width:{pct:.0f}%;background:{color}"></div></div>'
+            f'<div class="kpi-sub">{metrics["period"]}</div>'
+            f'</div>'
+        )
+    cards_html += '</div>'
+    return cards_html
 
 
-def _summary_html(text: str) -> str:
-    return (f'<div class="summary-card">'
-            f'<div class="summary-label">📋 Автоматическая сводка</div>'
-            f'{text}</div>')
-
-
-def _alerts_html(alerts: list) -> str:
+def _alerts_table(alerts):
     if not alerts:
-        return '<div style="color:#22C55E;font-weight:600;padding:12px 0">✓ Все показатели в норме</div>'
+        return '<div style="padding:20px;color:#22C55E;font-weight:600;text-align:center">✓ Все показатели в норме</div>'
     sorted_a = sorted(alerts, key=lambda a: 0 if a["level"] == "critical" else 1)
-    html = ""
+    header = (
+        '<div style="display:flex;align-items:center;padding:8px 16px;'
+        'border-bottom:1px solid #E8E4DC;gap:12px;">'
+        '<div style="width:7px"></div>'
+        '<div style="flex:1;font-size:0.67rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.08em">Алерт</div>'
+        '<div style="flex:2;font-size:0.67rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.08em;padding:0 8px">Описание</div>'
+        '<div style="font-size:0.67rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.08em">Статус</div>'
+        '</div>'
+    )
+    rows = ""
     for a in sorted_a:
-        bc = "badge-crit" if a["level"] == "critical" else "badge-warn"
-        bt = "КРИТИЧНО" if a["level"] == "critical" else "ВНИМАНИЕ"
-        html += (f'<div class="alert-item">'
-                 f'<span class="badge {bc}">{bt}</span>'
-                 f'<div><div class="alert-sku">{a["sku"]}</div>'
-                 f'<div class="alert-msg">{a["message"]}</div></div></div>')
-    return html
+        dot_cls = "a-dot-c" if a["level"] == "critical" else "a-dot-w"
+        badge_cls = "a-firing" if a["level"] == "critical" else "a-warning"
+        badge_txt = "FIRING" if a["level"] == "critical" else "WARNING"
+        rows += (
+            f'<div class="alert-row">'
+            f'<div class="a-dot {dot_cls}"></div>'
+            f'<div class="a-name">{a["sku"]}</div>'
+            f'<div class="a-cond">{a["message"]}</div>'
+            f'<span class="a-badge {badge_cls}">{badge_txt}</span>'
+            f'</div>'
+        )
+    return header + rows
 
 
-def _top3_html(items: list, val_key: str, fmt) -> str:
+def _top3_html(items, val_key, fmt):
     html = ""
     for i, item in enumerate(items, 1):
-        html += (f'<div class="top3-row">'
-                 f'<div class="top3-rank">{i}</div>'
-                 f'<div class="top3-name">{item["name"]}<br>'
-                 f'<span class="top3-sku-sub">{item["sku"]}</span></div>'
-                 f'<div class="top3-val">{fmt(item[val_key])}</div></div>')
+        html += (
+            f'<div class="top3-row">'
+            f'<div class="top3-rank">{i}</div>'
+            f'<div class="top3-name">{item["name"]}<br>'
+            f'<span class="top3-sku-sub">{item["sku"]}</span></div>'
+            f'<div class="top3-val">{fmt(item[val_key])}</div></div>'
+        )
     return html
+
+
+def _topbar(breadcrumb: str, title: str, show_new_report_btn=True):
+    bc_html = (
+        f'<div style="background:white;border-bottom:1px solid #E8E4DC;padding:14px 32px;">'
+        f'<div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:2px">{breadcrumb}</div>'
+        f'<div style="font-size:1.15rem;font-weight:700;color:#111827">{title}</div>'
+        f'</div>'
+    )
+    if show_new_report_btn:
+        col_l, col_r = st.columns([6, 1])
+        with col_l:
+            st.markdown(bc_html, unsafe_allow_html=True)
+        with col_r:
+            st.markdown(
+                '<div style="background:white;border-bottom:1px solid #E8E4DC;'
+                'padding:18px 16px 14px;display:flex;justify-content:flex-end">',
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="btn-primary">', unsafe_allow_html=True)
+            if st.button("□ New report", use_container_width=True, key="topbar_new"):
+                st.session_state["show_upload"] = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(bc_html, unsafe_allow_html=True)
 
 
 # ─── Session state ─────────────────────────────────────────────────────────────
-if "result" not in st.session_state:
-    st.session_state["result"] = None
+for _k, _v in [("result", None), ("page", "overview"), ("show_upload", False)]:
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
 
-# ─── Top nav bar ──────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="background:white;border-bottom:1px solid #E2E8F0;padding:14px 40px;
-            display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-    <div style="display:flex;align-items:center;gap:10px">
-        <div style="background:#3B82F6;border-radius:10px;width:36px;height:36px;
-                    display:flex;align-items:center;justify-content:center;font-size:18px">📊</div>
-        <div>
-            <div style="font-weight:800;font-size:1rem;color:#0F172A;line-height:1.1">Analytics Workflow</div>
-            <div style="font-size:0.72rem;color:#94A3B8">Аналитика маркетплейса</div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─── Main content wrapper ─────────────────────────────────────────────────────
-st.markdown('<div style="max-width:1280px;margin:0 auto;padding:32px 40px">', unsafe_allow_html=True)
-
-# ─── Results page ─────────────────────────────────────────────────────────────
-if st.session_state["result"] is not None:
-    res     = st.session_state["result"]
-    metrics = res["metrics"]
-    alerts  = res["alerts"]
-    smry    = res["summary"]
-    sales:   pd.DataFrame = res["sales"]
-    returns: pd.DataFrame = res["returns"]
-    stock:   pd.DataFrame = res["stock"]
-    n_days  = sales["дата"].nunique()
-
-    # Header row with title + New Analysis button
-    hcol1, hcol2 = st.columns([5, 1])
-    with hcol1:
-        st.markdown(
-            f'<div style="font-size:1.5rem;font-weight:800;color:#0F172A;margin-bottom:3px">Аналитика маркетплейса</div>'
-            f'<div style="font-size:0.85rem;color:#64748B;margin-bottom:20px">Период: {metrics["period"]} · {metrics["sku_count"]} SKU · {n_days} дней</div>',
-            unsafe_allow_html=True,
-        )
-    with hcol2:
-        st.markdown('<div style="padding-top:6px"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="new-btn">', unsafe_allow_html=True)
-        if st.button("↩ Новый анализ", use_container_width=True):
-            st.session_state["result"] = None
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # KPI cards
-    st.markdown(_kpi_html(metrics, n_days), unsafe_allow_html=True)
-
-    # Summary
-    st.markdown(_summary_html(smry), unsafe_allow_html=True)
-
-    # Tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["📈 Обзор", "🛍 Товары", "↩ Возвраты", "📦 Остатки", "🚨 Алерты"]
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(
+        '<div style="padding:18px 14px 10px;display:flex;align-items:center;gap:9px">'
+        '<div style="background:#111827;border-radius:6px;width:27px;height:27px;'
+        'display:flex;align-items:center;justify-content:center;font-size:12px;'
+        'color:white;font-weight:700;flex-shrink:0">F</div>'
+        '<span style="font-weight:800;font-size:0.9rem;color:#111827;letter-spacing:-0.01em">FLOWMETRIC</span>'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
-    with tab1:
-        with st.container(border=True):
-            st.markdown('<div class="sec-head">Динамика выручки</div>', unsafe_allow_html=True)
-            daily = sales.groupby("дата")["выручка"].sum().reset_index()
-            fig = px.line(daily, x="дата", y="выручка",
-                          labels={"дата": "", "выручка": "Выручка (₽)"})
-            fig.update_traces(line_color="#3B82F6", line_width=2.5,
-                              fill="tozeroy", fillcolor="rgba(59,130,246,0.07)")
-            st.plotly_chart(_chart(fig), use_container_width=True)
+    st.text_input("", placeholder="🔍  Search...", label_visibility="collapsed", key="sb_search")
+    st.markdown(
+        '<div style="font-size:0.65rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;'
+        'letter-spacing:0.1em;padding:10px 14px 4px">WORKSPACE</div>',
+        unsafe_allow_html=True,
+    )
 
-        cl, cr = st.columns(2)
-        with cl:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">Топ-3 по выручке</div>', unsafe_allow_html=True)
-                st.markdown(_top3_html(metrics["top3_revenue"], "revenue", lambda v: f"{v:,.0f} ₽"),
-                            unsafe_allow_html=True)
-        with cr:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">Топ-3 по продажам</div>', unsafe_allow_html=True)
-                st.markdown(_top3_html(metrics["top3_sold"], "sold", lambda v: f"{int(v):,} шт."),
-                            unsafe_allow_html=True)
+    has_data = st.session_state["result"] is not None
+    cur_page = st.session_state["page"]
+    in_upload = st.session_state["show_upload"] or not has_data
 
-    with tab2:
-        sku_m = metrics["sku_metrics"]
-        with st.container(border=True):
-            st.markdown('<div class="sec-head">Топ-10 SKU по выручке</div>', unsafe_allow_html=True)
-            top10 = sku_m.nlargest(10, "выручка_всего")
-            fig_b = px.bar(top10, x="sku", y="выручка_всего",
-                           labels={"sku": "", "выручка_всего": "Выручка (₽)"},
-                           hover_data=["название_товара"],
-                           color_discrete_sequence=[PALETTE[0]])
-            st.plotly_chart(_chart(fig_b), use_container_width=True)
-
-        with st.container(border=True):
-            st.markdown('<div class="sec-head">Продажи vs Конверсия</div>', unsafe_allow_html=True)
-            fig_sc = px.scatter(
-                sku_m, x="продано_штук_всего", y="конверсия",
-                hover_name="sku", hover_data=["название_товара"],
-                size="выручка_всего", size_max=55,
-                color="выручка_всего", color_continuous_scale=["#BFDBFE","#1D4ED8"],
-                labels={"продано_штук_всего": "Продажи (шт.)", "конверсия": "Конверсия (%)"},
-            )
-            fig_sc.update_layout(coloraxis_showscale=False)
-            st.plotly_chart(_chart(fig_sc), use_container_width=True)
-
-    with tab3:
-        sku_m = metrics["sku_metrics"].copy()
-        sku_m["статус"] = sku_m["процент_возвратов"].apply(
-            lambda r: "Критично (>20%)" if r > 20 else "Внимание (15–20%)" if r >= 15 else "Норма")
-        cmap = {"Критично (>20%)": "#EF4444", "Внимание (15–20%)": "#F59E0B", "Норма": "#22C55E"}
-
-        col1, col2 = st.columns([3, 2])
-        with col1:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">% возвратов по SKU</div>', unsafe_allow_html=True)
-                fig_r = px.bar(
-                    sku_m.sort_values("процент_возвратов", ascending=False),
-                    x="sku", y="процент_возвратов", color="статус",
-                    color_discrete_map=cmap,
-                    labels={"sku": "", "процент_возвратов": "% возвратов"},
-                )
-                st.plotly_chart(_chart(fig_r), use_container_width=True)
-        with col2:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">Причины возвратов</div>', unsafe_allow_html=True)
-                if not returns.empty and "причина_возврата" in returns.columns:
-                    rd = returns.groupby("причина_возврата")["количество_возвратов"].sum().reset_index()
-                    fig_p = px.pie(rd, names="причина_возврата", values="количество_возвратов",
-                                   color_discrete_sequence=PALETTE, hole=0.46)
-                    fig_p.update_traces(textposition="outside", textinfo="percent+label",
-                                        textfont_size=10)
-                    st.plotly_chart(_chart(fig_p), use_container_width=True)
-
-    with tab4:
-        stk = stock.copy()
-        stk["статус"] = stk["остаток"].apply(
-            lambda q: "Критично (<50)" if q < 50 else "Внимание (50–100)" if q <= 100 else "Норма")
-        cmap_s = {"Критично (<50)": "#EF4444", "Внимание (50–100)": "#F59E0B", "Норма": "#22C55E"}
-
-        col1, col2 = st.columns([3, 2])
-        with col1:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">Остатки по SKU</div>', unsafe_allow_html=True)
-                fig_s = px.bar(stk.sort_values("остаток"), x="sku", y="остаток",
-                               color="статус", color_discrete_map=cmap_s,
-                               labels={"sku": "", "остаток": "Остаток (шт.)"}, hover_data=["склад"])
-                st.plotly_chart(_chart(fig_s), use_container_width=True)
-        with col2:
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">По складам</div>', unsafe_allow_html=True)
-                wh = stk.groupby("склад")["остаток"].sum().reset_index()
-                fig_w = px.pie(wh, names="склад", values="остаток",
-                               color_discrete_sequence=PALETTE, hole=0.46)
-                fig_w.update_traces(textposition="outside", textinfo="percent+label", textfont_size=10)
-                st.plotly_chart(_chart(fig_w), use_container_width=True)
-
-    with tab5:
-        crit = [a for a in alerts if a["level"] == "critical"]
-        warn = [a for a in alerts if a["level"] == "warning"]
-
-        a1, a2, a3 = st.columns(3)
-        a1.metric("Всего алертов",     len(alerts))
-        a2.metric("🔴 Критических",    len(crit))
-        a3.metric("🟡 Предупреждений", len(warn))
-
-        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
-
-        if not alerts:
-            with st.container(border=True):
-                st.success("✅ Все показатели в норме. Критических проблем не обнаружено.")
-        else:
-            st.markdown(_alerts_html(alerts), unsafe_allow_html=True)
-            st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-            with st.container(border=True):
-                st.markdown('<div class="sec-head">Сводная таблица</div>', unsafe_allow_html=True)
-                df_a = pd.DataFrame(alerts)
-                df_a["Уровень"] = df_a["level"].map({"critical": "🔴 Критично", "warning": "🟡 Внимание"})
-                st.dataframe(
-                    df_a[["Уровень", "sku", "message"]].rename(columns={"sku": "SKU", "message": "Описание"}),
-                    use_container_width=True, hide_index=True,
-                )
-
-    # Export
-    st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown('<div class="sec-head">📥 Экспорт отчёта</div>', unsafe_allow_html=True)
-        slug = metrics["period"].replace(" — ", "_").replace("-", "")
-        ec1, ec2, _ = st.columns([1, 1, 3])
-        with ec1:
-            st.download_button("📊 Скачать CSV", data=export_csv(metrics),
-                               file_name=f"analytics_{slug}.csv", mime="text/csv",
-                               use_container_width=True)
-        with ec2:
-            st.download_button("📄 Скачать PDF", data=export_pdf(metrics, alerts, smry),
-                               file_name=f"analytics_{slug}.pdf", mime="application/pdf",
-                               use_container_width=True)
-
-    st.markdown('<div style="text-align:center;color:#94A3B8;font-size:0.75rem;padding:24px 0 8px">Сформировано автоматически · Analytics Workflow</div>',
-                unsafe_allow_html=True)
-
-# ─── Upload page ──────────────────────────────────────────────────────────────
-else:
-    # Hero
-    st.markdown("""
-    <div style="text-align:center;padding:40px 0 32px">
-        <div style="background:#EFF6FF;border-radius:20px;width:72px;height:72px;
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:32px;margin:0 auto 20px">📊</div>
-        <div style="font-size:2rem;font-weight:800;color:#0F172A;margin-bottom:10px">
-            Аналитика маркетплейса
-        </div>
-        <div style="color:#64748B;font-size:1rem;line-height:1.6;max-width:480px;margin:0 auto">
-            Загрузите файлы с данными и получите полный аналитический отчёт —
-            графики, KPI, алерты и сводку за несколько секунд.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Steps hint
-    st.markdown("""
-    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:32px;flex-wrap:wrap">
-        <div style="background:#EFF6FF;color:#3B82F6;border-radius:20px;padding:6px 16px;font-size:0.8rem;font-weight:600">① Загрузите файлы</div>
-        <div style="color:#CBD5E1;font-size:1.2rem;line-height:2">→</div>
-        <div style="background:#F1F5F9;color:#64748B;border-radius:20px;padding:6px 16px;font-size:0.8rem;font-weight:600">② Нажмите «Запустить анализ»</div>
-        <div style="color:#CBD5E1;font-size:1.2rem;line-height:2">→</div>
-        <div style="background:#F1F5F9;color:#64748B;border-radius:20px;padding:6px 16px;font-size:0.8rem;font-weight:600">③ Изучите результаты</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Upload cards — 4 columns
-    c1, c2, c3, c4 = st.columns(4)
-
-    upload_configs = [
-        (c1, "sf",  "sales_file",    "📈", "sales.csv",          "CSV · обязательный",
-         "дата, sku, название_товара,\nкатегория, продано_штук,\nвыручка, сессии", "csv"),
-        (c2, "rf",  "returns_file",  "↩",  "returns.csv",        "CSV · обязательный",
-         "дата, sku,\nколичество_возвратов,\nпричина_возврата",   "csv"),
-        (c3, "stf", "stock_file",    "📦", "stock.csv",           "CSV · обязательный",
-         "sku, остаток, склад",                                    "csv"),
-        (c4, "cf",  "campaign_file", "📣", "campaign_info.txt",   "TXT · необязательный",
-         "Описание маркетинговой\nакции (произвольный текст)",     "txt"),
+    NAV = [
+        ("overview",  "Overview"),
+        ("products",  "Товары"),
+        ("returns",   "Возвраты"),
+        ("stock",     "Остатки"),
+        ("alerts",    "Алерты"),
+        ("export",    "Экспорт"),
     ]
+    for pid, plabel in NAV:
+        is_active = has_data and not in_upload and cur_page == pid
+        if is_active:
+            st.markdown(f'<div class="nav-active">● {plabel}</div>', unsafe_allow_html=True)
+        else:
+            if st.button(f"  {plabel}", key=f"nav_{pid}", disabled=not has_data, use_container_width=True):
+                st.session_state["page"] = pid
+                st.session_state["show_upload"] = False
+                st.rerun()
 
-    file_refs: dict = {}
-    parse_fns = {"sales_file": parse_sales, "returns_file": parse_returns, "stock_file": parse_stock}
+    st.markdown('<hr>', unsafe_allow_html=True)
 
-    for col, key, var_name, icon, title, badge_text, hint, ftype in upload_configs:
-        with col:
-            uploaded = st.file_uploader(
-                label=title,
-                type=[ftype],
-                key=key,
-                label_visibility="collapsed",
-                help=hint,
-            )
-            file_refs[var_name] = uploaded
+    if has_data:
+        m = st.session_state["result"]["metrics"]
+        st.markdown(
+            f'<div style="padding:4px 14px 8px">'
+            f'<div style="font-size:0.65rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;'
+            f'letter-spacing:0.08em;margin-bottom:6px">ДАННЫЕ</div>'
+            f'<div style="font-size:0.78rem;color:#374151;font-weight:600">{m["period"]}</div>'
+            f'<div style="font-size:0.73rem;color:#9CA3AF">{m["sku_count"]} SKU</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div style="padding:4px 14px 8px;font-size:0.78rem;color:#9CA3AF">'
+            'Загрузите данные для начала работы</div>',
+            unsafe_allow_html=True,
+        )
 
-            if uploaded:
-                parse_fn = parse_fns.get(var_name)
-                if parse_fn:
-                    try:
-                        parse_fn(uploaded)
-                        status_html = f'<span class="upload-badge-ok">✓ Файл загружен</span>'
-                        card_class = "upload-card ok"
-                    except Exception as e:
-                        status_html = f'<span class="upload-badge-err">✗ Ошибка формата</span>'
-                        card_class = "upload-card err"
-                    finally:
-                        uploaded.seek(0)
-                else:
-                    status_html = '<span class="upload-badge-ok">✓ Файл загружен</span>'
-                    card_class = "upload-card ok"
-            else:
-                status_html = f'<span class="upload-badge-wait">Ожидание файла</span>'
-                card_class = "upload-card"
+    st.markdown(
+        '<div style="margin-top:20px;padding:12px 14px;border-top:1px solid #E8E4DC;'
+        'display:flex;align-items:center;gap:9px">'
+        '<div style="background:#E5E7EB;border-radius:50%;width:27px;height:27px;'
+        'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#374151">A</div>'
+        '<span style="font-size:0.8rem;font-weight:500;color:#374151">Аналитик</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-            is_optional = var_name == "campaign_file"
-            req_label = "" if is_optional else '<span style="color:#EF4444;font-size:0.7rem;margin-left:4px">обязательный</span>'
+# ─── Main content padding wrapper ─────────────────────────────────────────────
+# ─── Upload / Report builder ──────────────────────────────────────────────────
+if in_upload:
+    _topbar("REPORTS", "New report", show_new_report_btn=False)
 
-            st.markdown(
-                f'<div class="{card_class}" style="margin-top:-8px">'
-                f'<div class="upload-icon">{icon}</div>'
-                f'<div class="upload-title">{title} {req_label}</div>'
-                f'<div class="upload-desc">{hint.replace(chr(10), " · ")}</div>'
-                f'{status_html}</div>',
-                unsafe_allow_html=True,
-            )
+    st.markdown('<div style="padding:28px 32px">', unsafe_allow_html=True)
 
-    # Validate files
-    sales_file    = file_refs["sales_file"]
-    returns_file  = file_refs["returns_file"]
-    stock_file    = file_refs["stock_file"]
-    campaign_file = file_refs["campaign_file"]
+    # Back button if data already exists
+    if has_data:
+        st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
+        if st.button("← Back to dashboard"):
+            st.session_state["show_upload"] = False
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+
+    # Stepper
+    st.markdown("""
+    <div style="display:flex;align-items:center;margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:8px">
+            <div style="background:#111827;color:white;border-radius:50%;width:26px;height:26px;
+                        display:flex;align-items:center;justify-content:center;font-size:0.74rem;font-weight:700">1</div>
+            <span style="font-size:0.82rem;font-weight:700;color:#111827">Upload data</span>
+        </div>
+        <div style="width:64px;height:1px;background:#D1CCC4;margin:0 10px"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <div style="border:2px solid #D1CCC4;color:#9CA3AF;border-radius:50%;width:26px;height:26px;
+                        display:flex;align-items:center;justify-content:center;font-size:0.74rem;font-weight:700">2</div>
+            <span style="font-size:0.82rem;font-weight:500;color:#9CA3AF">Analyze</span>
+        </div>
+        <div style="width:64px;height:1px;background:#D1CCC4;margin:0 10px"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <div style="border:2px solid #D1CCC4;color:#9CA3AF;border-radius:50%;width:26px;height:26px;
+                        display:flex;align-items:center;justify-content:center;font-size:0.74rem;font-weight:700">3</div>
+            <span style="font-size:0.82rem;font-weight:500;color:#9CA3AF">Results</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Two-column layout: file upload left, what you'll get right
+    up_col, prev_col = st.columns([3, 2], gap="large")
 
     sales_ok = returns_ok = stock_ok = False
-    if sales_file:
-        try: parse_sales(sales_file); sales_ok = True
-        except: pass
-        finally: sales_file.seek(0)
-    if returns_file:
-        try: parse_returns(returns_file); returns_ok = True
-        except: pass
-        finally: returns_file.seek(0)
-    if stock_file:
-        try: parse_stock(stock_file); stock_ok = True
-        except: pass
-        finally: stock_file.seek(0)
+    sales_file = returns_file = stock_file = campaign_file = None
 
-    can_run = bool(sales_file and returns_file and stock_file and sales_ok and returns_ok and stock_ok)
+    with up_col:
+        st.markdown('<div class="sec-head">Загрузите файлы с данными</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:0.8rem;color:#6B7280;margin-bottom:16px">Первые три файла обязательны. Четвёртый добавит описание кампании в сводку.</div>', unsafe_allow_html=True)
 
-    # Run button
-    st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-    btn_col1, btn_col2, btn_col3 = st.columns([2, 1, 2])
-    with btn_col2:
+        row1_c1, row1_c2 = st.columns(2, gap="medium")
+        row2_c1, row2_c2 = st.columns(2, gap="medium")
+
+        # sales.csv
+        with row1_c1:
+            sales_file = st.file_uploader("sales", type=["csv"], key="sf", label_visibility="collapsed")
+            if sales_file:
+                try:
+                    parse_sales(sales_file); sales_ok = True
+                    st.markdown('<div class="ufc ufc-ok"><div class="ufc-icon">📈</div><div class="ufc-title">sales.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · выручка · сессии</div><div class="ufc-ok-text">✓ Файл проверен</div></div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.markdown(f'<div class="ufc ufc-err"><div class="ufc-icon">📈</div><div class="ufc-title">sales.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · выручка · сессии</div><div class="ufc-err-text">✗ {e}</div></div>', unsafe_allow_html=True)
+                finally:
+                    sales_file.seek(0)
+            else:
+                st.markdown('<div class="ufc"><div class="ufc-icon">📈</div><div class="ufc-title">sales.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · выручка · сессии</div><div style="font-size:0.74rem;color:#D1D5DB">Ожидание файла</div></div>', unsafe_allow_html=True)
+
+        # returns.csv
+        with row1_c2:
+            returns_file = st.file_uploader("returns", type=["csv"], key="rf", label_visibility="collapsed")
+            if returns_file:
+                try:
+                    parse_returns(returns_file); returns_ok = True
+                    st.markdown('<div class="ufc ufc-ok"><div class="ufc-icon">↩</div><div class="ufc-title">returns.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · возвраты · причина</div><div class="ufc-ok-text">✓ Файл проверен</div></div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.markdown(f'<div class="ufc ufc-err"><div class="ufc-icon">↩</div><div class="ufc-title">returns.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · возвраты · причина</div><div class="ufc-err-text">✗ {e}</div></div>', unsafe_allow_html=True)
+                finally:
+                    returns_file.seek(0)
+            else:
+                st.markdown('<div class="ufc"><div class="ufc-icon">↩</div><div class="ufc-title">returns.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">дата · SKU · возвраты · причина</div><div style="font-size:0.74rem;color:#D1D5DB">Ожидание файла</div></div>', unsafe_allow_html=True)
+
+        # stock.csv
+        with row2_c1:
+            stock_file = st.file_uploader("stock", type=["csv"], key="stf", label_visibility="collapsed")
+            if stock_file:
+                try:
+                    parse_stock(stock_file); stock_ok = True
+                    st.markdown('<div class="ufc ufc-ok"><div class="ufc-icon">📦</div><div class="ufc-title">stock.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">SKU · остаток · склад</div><div class="ufc-ok-text">✓ Файл проверен</div></div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.markdown(f'<div class="ufc ufc-err"><div class="ufc-icon">📦</div><div class="ufc-title">stock.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">SKU · остаток · склад</div><div class="ufc-err-text">✗ {e}</div></div>', unsafe_allow_html=True)
+                finally:
+                    stock_file.seek(0)
+            else:
+                st.markdown('<div class="ufc"><div class="ufc-icon">📦</div><div class="ufc-title">stock.csv</div><div class="ufc-badge-req">Обязательный</div><div class="ufc-hint">SKU · остаток · склад</div><div style="font-size:0.74rem;color:#D1D5DB">Ожидание файла</div></div>', unsafe_allow_html=True)
+
+        # campaign_info.txt
+        with row2_c2:
+            campaign_file = st.file_uploader("campaign", type=["txt"], key="cf", label_visibility="collapsed")
+            if campaign_file:
+                st.markdown('<div class="ufc ufc-ok"><div class="ufc-icon">📣</div><div class="ufc-title">campaign_info.txt</div><div class="ufc-badge-opt">Необязательный</div><div class="ufc-hint">Описание маркетинговой акции</div><div class="ufc-ok-text">✓ Файл загружен</div></div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="ufc"><div class="ufc-icon">📣</div><div class="ufc-title">campaign_info.txt</div><div class="ufc-badge-opt">Необязательный</div><div class="ufc-hint">Описание маркетинговой акции</div><div style="font-size:0.74rem;color:#D1D5DB">Пропустить</div></div>', unsafe_allow_html=True)
+
+        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+        can_run = bool(sales_file and returns_file and stock_file and sales_ok and returns_ok and stock_ok)
         if not can_run:
-            missing = []
-            if not sales_file or not sales_ok:    missing.append("sales.csv")
-            if not returns_file or not returns_ok: missing.append("returns.csv")
-            if not stock_file or not stock_ok:     missing.append("stock.csv")
+            missing = [n for n, ok in [("sales.csv", sales_ok), ("returns.csv", returns_ok), ("stock.csv", stock_ok)] if not ok]
             if missing:
-                st.markdown(
-                    f'<div style="text-align:center;color:#94A3B8;font-size:0.78rem;margin-bottom:8px">'
-                    f'Нужно загрузить: {", ".join(missing)}</div>',
-                    unsafe_allow_html=True,
-                )
-        st.markdown('<div class="run-btn">', unsafe_allow_html=True)
-        run_btn = st.button("▶  Запустить анализ", disabled=not can_run, use_container_width=True)
+                st.markdown(f'<div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px">Загрузите обязательные файлы: {", ".join(missing)}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="btn-primary">', unsafe_allow_html=True)
+        run_btn = st.button(
+            "Continue →" if can_run else "⬆  Загрузите файлы выше",
+            disabled=not can_run,
+            use_container_width=False,
+            key="run_btn",
+        )
         st.markdown('</div>', unsafe_allow_html=True)
+
+    with prev_col:
+        st.markdown("""
+        <div style="background:white;border-radius:12px;border:1px solid #E8E4DC;padding:22px;margin-top:36px">
+            <div style="font-size:0.67rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:16px">ЧТО ВЫ ПОЛУЧИТЕ</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="background:#F4F1EB;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📊</div>
+                    <div><div style="font-weight:600;font-size:0.84rem;color:#111827;margin-bottom:2px">KPI и метрики</div><div style="font-size:0.76rem;color:#6B7280;line-height:1.45">Выручка, продажи, конверсия, % возвратов по каждому SKU</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="background:#F4F1EB;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📈</div>
+                    <div><div style="font-weight:600;font-size:0.84rem;color:#111827;margin-bottom:2px">Интерактивные графики</div><div style="font-size:0.76rem;color:#6B7280;line-height:1.45">Динамика выручки, топ SKU, остатки, причины возвратов</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="background:#FEF3C7;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">🚨</div>
+                    <div><div style="font-weight:600;font-size:0.84rem;color:#111827;margin-bottom:2px">Автоматические алерты</div><div style="font-size:0.76rem;color:#6B7280;line-height:1.45">7 типов проблем: критичные и предупреждения</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="background:#D1FAE5;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📋</div>
+                    <div><div style="font-weight:600;font-size:0.84rem;color:#111827;margin-bottom:2px">Текстовая сводка</div><div style="font-size:0.76rem;color:#6B7280;line-height:1.45">Связный отчёт без AI и сторонних API</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="background:#EDE9FF;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📥</div>
+                    <div><div style="font-weight:600;font-size:0.84rem;color:#111827;margin-bottom:2px">Экспорт PDF и CSV</div><div style="font-size:0.76rem;color:#6B7280;line-height:1.45">Скачайте готовый отчёт одним нажатием</div></div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Run analysis
     if run_btn and can_run:
-        with st.spinner("Обрабатываю данные…"):
+        with st.spinner("Анализирую данные…"):
             for f in (sales_file, returns_file, stock_file):
                 f.seek(0)
             sales    = parse_sales(sales_file)
@@ -562,31 +538,215 @@ else:
                 metrics=metrics, alerts=alerts, summary=summary,
                 sales=sales, returns=returns, stock=stock,
             )
+            st.session_state["page"] = "overview"
+            st.session_state["show_upload"] = False
         st.rerun()
 
-    # Feature cards
-    st.markdown('<div style="height:40px"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="text-align:center;font-size:0.78rem;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px">Что вы получите</div>', unsafe_allow_html=True)
-    fcols = st.columns(4)
-    features = [
-        ("📈","#EFF6FF","#3B82F6","KPI и динамика",   "Выручка, продажи, конверсия по дням"),
-        ("🚨","#FEF2F2","#EF4444","Алерты",            "Автоматическое выявление 7 типов проблем"),
-        ("📋","#F5F3FF","#8B5CF6","Сводка",            "Связный текстовый отчёт без AI"),
-        ("📥","#F0FDF4","#22C55E","Экспорт",           "CSV и PDF-отчёты для скачивания"),
-    ]
-    for col, (icon, bg, color, title, desc) in zip(fcols, features):
-        with col:
+# ─── Results pages ─────────────────────────────────────────────────────────────
+else:
+    res     = st.session_state["result"]
+    metrics = res["metrics"]
+    alerts  = res["alerts"]
+    smry    = res["summary"]
+    sales:   pd.DataFrame = res["sales"]
+    returns: pd.DataFrame = res["returns"]
+    stock:   pd.DataFrame = res["stock"]
+    n_days  = sales["дата"].nunique()
+
+    page = st.session_state["page"]
+
+    PAGE_TITLES = {
+        "overview":  ("Workspace / Home",    "Overview"),
+        "products":  ("Workspace / Reports", "Товары"),
+        "returns":   ("Workspace / Reports", "Возвраты"),
+        "stock":     ("Workspace / Reports", "Остатки"),
+        "alerts":    ("Workspace / Alerts",  "Alerts"),
+        "export":    ("Workspace / Export",  "Экспорт"),
+    }
+    bc, title = PAGE_TITLES.get(page, ("Workspace", page.capitalize()))
+    _topbar(bc, title, show_new_report_btn=True)
+
+    st.markdown('<div style="padding:24px 32px">', unsafe_allow_html=True)
+
+    # ── Overview ──────────────────────────────────────────────────────────────
+    if page == "overview":
+        st.markdown(_kpi_cards(metrics, n_days), unsafe_allow_html=True)
+
+        ch_l, ch_r = st.columns([3, 2], gap="large")
+        with ch_l:
             with st.container(border=True):
-                st.markdown(
-                    f'<div style="padding:4px">'
-                    f'<div style="background:{bg};color:{color};border-radius:10px;width:38px;height:38px;'
-                    f'display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:12px">{icon}</div>'
-                    f'<div style="font-weight:700;color:#0F172A;font-size:0.88rem;margin-bottom:4px">{title}</div>'
-                    f'<div style="color:#64748B;font-size:0.79rem;line-height:1.45">{desc}</div></div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown('<div class="sec-head">Sessions over time · Динамика выручки</div>', unsafe_allow_html=True)
+                daily = sales.groupby("дата")["выручка"].sum().reset_index()
+                fig = px.line(daily, x="дата", y="выручка", labels={"дата": "", "выручка": "Выручка (₽)"})
+                fig.update_traces(line_color="#111827", line_width=2,
+                                  fill="tozeroy", fillcolor="rgba(17,24,39,0.05)")
+                st.plotly_chart(_chart(fig), use_container_width=True)
 
-    st.markdown('<div style="text-align:center;color:#94A3B8;font-size:0.75rem;padding:32px 0 8px">Analytics Workflow · Никаких внешних AI API · Данные не покидают ваш браузер</div>',
-                unsafe_allow_html=True)
+        with ch_r:
+            with st.container(border=True):
+                st.markdown('<div class="sec-head">By channel · По категориям</div>', unsafe_allow_html=True)
+                if "категория" in sales.columns:
+                    cat = sales.groupby("категория")["выручка"].sum().reset_index()
+                    fig_p = px.pie(cat, names="категория", values="выручка",
+                                   color_discrete_sequence=["#111827","#374151","#6B7280","#9CA3AF","#D1D5DB"],
+                                   hole=0.5)
+                    fig_p.update_traces(textposition="outside", textinfo="percent+label", textfont_size=10)
+                    st.plotly_chart(_chart(fig_p), use_container_width=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+        # Recent reports row
+        tr_l, tr_r = st.columns(2, gap="large")
+        with tr_l:
+            with st.container(border=True):
+                hdr_l, hdr_r = st.columns([3, 1])
+                with hdr_l:
+                    st.markdown('<div class="sec-head">Топ SKU по выручке</div>', unsafe_allow_html=True)
+                with hdr_r:
+                    st.markdown('<div style="font-size:0.72rem;color:#9CA3AF;padding-top:2px;text-align:right">VIEW ALL →</div>', unsafe_allow_html=True)
+                st.markdown(_top3_html(metrics["top3_revenue"], "revenue", lambda v: f"{v:,.0f} ₽"),
+                            unsafe_allow_html=True)
+
+        with tr_r:
+            with st.container(border=True):
+                hdr_l, hdr_r = st.columns([3, 1])
+                with hdr_l:
+                    st.markdown('<div class="sec-head">Топ SKU по продажам</div>', unsafe_allow_html=True)
+                with hdr_r:
+                    st.markdown('<div style="font-size:0.72rem;color:#9CA3AF;padding-top:2px;text-align:right">VIEW ALL →</div>', unsafe_allow_html=True)
+                st.markdown(_top3_html(metrics["top3_sold"], "sold", lambda v: f"{int(v):,} шт."),
+                            unsafe_allow_html=True)
+
+        # Summary
+        st.markdown(
+            f'<div class="summary-card"><div class="summary-label">Автоматическая сводка</div>{smry}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Products ──────────────────────────────────────────────────────────────
+    elif page == "products":
+        sku_m = metrics["sku_metrics"]
+        with st.container(border=True):
+            st.markdown('<div class="sec-head">Топ-10 SKU по выручке</div>', unsafe_allow_html=True)
+            top10 = sku_m.nlargest(10, "выручка_всего")
+            fig_b = px.bar(top10, x="sku", y="выручка_всего",
+                           labels={"sku": "", "выручка_всего": "Выручка (₽)"},
+                           hover_data=["название_товара"],
+                           color_discrete_sequence=["#374151"])
+            st.plotly_chart(_chart(fig_b), use_container_width=True)
+
+        with st.container(border=True):
+            st.markdown('<div class="sec-head">Продажи vs Конверсия</div>', unsafe_allow_html=True)
+            fig_sc = px.scatter(
+                sku_m, x="продано_штук_всего", y="конверсия",
+                hover_name="sku", hover_data=["название_товара"],
+                size="выручка_всего", size_max=50,
+                color="выручка_всего",
+                color_continuous_scale=["#E5E7EB","#111827"],
+                labels={"продано_штук_всего": "Продажи (шт.)", "конверсия": "Конверсия (%)"},
+            )
+            st.plotly_chart(_chart(fig_sc), use_container_width=True)
+
+    # ── Returns ───────────────────────────────────────────────────────────────
+    elif page == "returns":
+        sku_m = metrics["sku_metrics"].copy()
+        sku_m["статус"] = sku_m["процент_возвратов"].apply(
+            lambda r: "Критично (>20%)" if r > 20 else "Внимание (15–20%)" if r >= 15 else "Норма")
+        cmap = {"Критично (>20%)": "#EF4444", "Внимание (15–20%)": "#F59E0B", "Норма": "#374151"}
+        col1, col2 = st.columns([3, 2], gap="large")
+        with col1:
+            with st.container(border=True):
+                st.markdown('<div class="sec-head">% возвратов по SKU</div>', unsafe_allow_html=True)
+                fig_r = px.bar(sku_m.sort_values("процент_возвратов", ascending=False),
+                               x="sku", y="процент_возвратов", color="статус", color_discrete_map=cmap,
+                               labels={"sku": "", "процент_возвратов": "% возвратов"})
+                st.plotly_chart(_chart(fig_r), use_container_width=True)
+        with col2:
+            with st.container(border=True):
+                st.markdown('<div class="sec-head">Причины возвратов</div>', unsafe_allow_html=True)
+                if not returns.empty and "причина_возврата" in returns.columns:
+                    rd = returns.groupby("причина_возврата")["количество_возвратов"].sum().reset_index()
+                    fig_p = px.pie(rd, names="причина_возврата", values="количество_возвратов",
+                                   color_discrete_sequence=["#111827","#374151","#6B7280","#9CA3AF","#D1D5DB"],
+                                   hole=0.46)
+                    fig_p.update_traces(textposition="outside", textinfo="percent+label", textfont_size=10)
+                    st.plotly_chart(_chart(fig_p), use_container_width=True)
+
+    # ── Stock ─────────────────────────────────────────────────────────────────
+    elif page == "stock":
+        stk = stock.copy()
+        stk["статус"] = stk["остаток"].apply(
+            lambda q: "Критично (<50)" if q < 50 else "Внимание (50–100)" if q <= 100 else "Норма")
+        cmap_s = {"Критично (<50)": "#EF4444", "Внимание (50–100)": "#F59E0B", "Норма": "#374151"}
+        col1, col2 = st.columns([3, 2], gap="large")
+        with col1:
+            with st.container(border=True):
+                st.markdown('<div class="sec-head">Остатки по SKU</div>', unsafe_allow_html=True)
+                fig_s = px.bar(stk.sort_values("остаток"), x="sku", y="остаток",
+                               color="статус", color_discrete_map=cmap_s,
+                               labels={"sku": "", "остаток": "Остаток (шт.)"}, hover_data=["склад"])
+                st.plotly_chart(_chart(fig_s), use_container_width=True)
+        with col2:
+            with st.container(border=True):
+                st.markdown('<div class="sec-head">По складам</div>', unsafe_allow_html=True)
+                wh = stk.groupby("склад")["остаток"].sum().reset_index()
+                fig_w = px.pie(wh, names="склад", values="остаток",
+                               color_discrete_sequence=["#111827","#374151","#6B7280","#9CA3AF"],
+                               hole=0.46)
+                fig_w.update_traces(textposition="outside", textinfo="percent+label", textfont_size=10)
+                st.plotly_chart(_chart(fig_w), use_container_width=True)
+
+    # ── Alerts ────────────────────────────────────────────────────────────────
+    elif page == "alerts":
+        crit = [a for a in alerts if a["level"] == "critical"]
+        warn = [a for a in alerts if a["level"] == "warning"]
+
+        # Summary metrics
+        mc1, mc2, mc3, _ = st.columns([1, 1, 1, 3])
+        for col, label, val, clr in [
+            (mc1, "ALL",     len(alerts), "#111827"),
+            (mc2, "FIRING",  len(crit),   "#DC2626"),
+            (mc3, "WARNING", len(warn),   "#D97706"),
+        ]:
+            col.markdown(
+                f'<div style="background:white;border-radius:10px;padding:14px 18px;border:1px solid #E8E4DC">'
+                f'<div style="font-size:0.65rem;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">{label}</div>'
+                f'<div style="font-size:1.5rem;font-weight:700;color:{clr}">{val}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown('<div style="height:18px"></div>', unsafe_allow_html=True)
+
+        # Tabs: All / Firing / Warning
+        tab_all, tab_crit, tab_warn = st.tabs(["All", "Firing", "Warning"])
+        with tab_all:
+            with st.container(border=True):
+                st.markdown(_alerts_table(alerts), unsafe_allow_html=True)
+        with tab_crit:
+            with st.container(border=True):
+                st.markdown(_alerts_table(crit), unsafe_allow_html=True)
+        with tab_warn:
+            with st.container(border=True):
+                st.markdown(_alerts_table(warn), unsafe_allow_html=True)
+
+    # ── Export ────────────────────────────────────────────────────────────────
+    elif page == "export":
+        with st.container(border=True):
+            st.markdown('<div class="sec-head">Скачать отчёт</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size:0.82rem;color:#6B7280;margin-bottom:20px">Выберите формат для скачивания готового аналитического отчёта.</div>', unsafe_allow_html=True)
+            slug = metrics["period"].replace(" — ", "_").replace("-", "")
+            e1, e2, _ = st.columns([1, 1, 3])
+            with e1:
+                st.download_button("📊 Скачать CSV", data=export_csv(metrics),
+                                   file_name=f"analytics_{slug}.csv", mime="text/csv",
+                                   use_container_width=True)
+            with e2:
+                st.download_button("📄 Скачать PDF", data=export_pdf(metrics, alerts, smry),
+                                   file_name=f"analytics_{slug}.pdf", mime="application/pdf",
+                                   use_container_width=True)
+
+        with st.container(border=True):
+            st.markdown('<div class="sec-head">Сводка отчёта</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:0.88rem;color:#374151;line-height:1.75">{smry}</div>',
+                        unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
