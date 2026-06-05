@@ -54,7 +54,6 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 [data-testid="stHorizontalBlock"]:has(.topbar-lc) {
     background: white !important;
     border-bottom: 1px solid #E8E4DC !important;
-    margin-top: -1rem !important;       /* negate block-container top padding → flush to top */
     margin-left: -2rem !important;
     margin-right: -2rem !important;
     padding-left: 2rem !important;
